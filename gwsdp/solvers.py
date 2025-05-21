@@ -14,12 +14,10 @@ import numpy as np
 from scipy import sparse
 from tqdm import tqdm
 
-from gwsdp.utils import (cost_tensor_numpy, gw_from_cost,
-                         sinkhorn_scaling)
+from gwsdp.utils import cost_tensor_numpy, gw_from_cost, sinkhorn_scaling
 
 
-def solve_gw_sdp(C1, C2, p, q, solver='SCS', max_iters=10000,
-                 verbose=False, tol=1e-5):
+def solve_gw_sdp(C1, C2, p, q, solver="SCS", max_iters=10000, verbose=False, tol=1e-5):
     """Solve the Gromov-Wasserstein optimal transport problem using semidefinite programming.
 
     This function solves the following optimization problem:
@@ -55,10 +53,12 @@ def solve_gw_sdp(C1, C2, p, q, solver='SCS', max_iters=10000,
     Pi = cp.Variable((m, n))  # the transportation matrix
     P = cp.Variable((m * n, m * n))
 
-    M = cp.bmat([
-        [P, cp.reshape(cp.vec(Pi), (m * n, 1))],
-        [cp.reshape(cp.vec(Pi), (1, m * n)), np.ones((1, 1))]
-    ])
+    M = cp.bmat(
+        [
+            [P, cp.reshape(cp.vec(Pi), (m * n, 1))],
+            [cp.reshape(cp.vec(Pi), (1, m * n)), np.ones((1, 1))],
+        ]
+    )
 
     constraints = [
         M >> 0,
@@ -73,33 +73,34 @@ def solve_gw_sdp(C1, C2, p, q, solver='SCS', max_iters=10000,
     bjs = np.repeat(np.eye(n), m, axis=1)
 
     for i in range(m):
-        constraints += [
-            P @ ais[i] == p[i] * cp.vec(Pi)
-        ]
+        constraints += [P @ ais[i] == p[i] * cp.vec(Pi)]
 
     for j in range(n):
-        constraints += [
-            P @ bjs[j] == q[j] * cp.vec(Pi)
-        ]
+        constraints += [P @ bjs[j] == q[j] * cp.vec(Pi)]
 
     # solve the problem
     prob = cp.Problem(cp.Minimize(cp.trace(L @ P.T)), constraints)
-    if solver == 'scs':
-        prob.solve(solver=cp.SCS, verbose=verbose,
-                   max_iters=max_iters, eps=tol)
-    elif solver == 'mosek':
-        prob.solve(solver=cp.MOSEK, verbose=verbose,
-                   mosek_params={'MSK_IPAR_BI_MAX_ITERATIONS': max_iters,
-                                 'MSK_IPAR_INTPNT_MAX_ITERATIONS': max_iters,
-                                 'MSK_IPAR_SIM_MAX_ITERATIONS': max_iters, })
+    if solver == "scs":
+        prob.solve(solver=cp.SCS, verbose=verbose, max_iters=max_iters, eps=tol)
+    elif solver == "mosek":
+        prob.solve(
+            solver=cp.MOSEK,
+            verbose=verbose,
+            mosek_params={
+                "MSK_IPAR_BI_MAX_ITERATIONS": max_iters,
+                "MSK_IPAR_INTPNT_MAX_ITERATIONS": max_iters,
+                "MSK_IPAR_SIM_MAX_ITERATIONS": max_iters,
+            },
+        )
     else:
-        raise TypeError('Solver is not supported.')
+        raise TypeError("Solver is not supported.")
 
     return Pi.value, P.value, prob.value
 
 
-def solve_fused_gw_sdp(M, C1, C2, p, q, alpha=0.5, max_iters=10000, tol=1e-5,
-                       verbose=False, solver='scs'):
+def solve_fused_gw_sdp(
+    M, C1, C2, p, q, alpha=0.5, max_iters=10000, tol=1e-5, verbose=False, solver="scs"
+):
     """Solve the fused Gromov-Wasserstein optimal transport problem using semidefinite programming.
 
     This function solves a weighted combination of standard OT and GW:
@@ -139,10 +140,12 @@ def solve_fused_gw_sdp(M, C1, C2, p, q, alpha=0.5, max_iters=10000, tol=1e-5,
     Pi = cp.Variable((m, n))  # the transportation matrix
     P = cp.Variable((m * n, m * n))
 
-    M = cp.bmat([
-        [P, cp.reshape(cp.vec(Pi), (m * n, 1))],
-        [cp.reshape(cp.vec(Pi), (1, m * n)), np.ones((1, 1))]
-    ])
+    M = cp.bmat(
+        [
+            [P, cp.reshape(cp.vec(Pi), (m * n, 1))],
+            [cp.reshape(cp.vec(Pi), (1, m * n)), np.ones((1, 1))],
+        ]
+    )
 
     constraints = [
         M >> 0,
@@ -157,28 +160,28 @@ def solve_fused_gw_sdp(M, C1, C2, p, q, alpha=0.5, max_iters=10000, tol=1e-5,
     bjs = np.repeat(np.eye(n), m, axis=1)
 
     for i in range(m):
-        constraints += [
-            P @ ais[i] == p[i] * cp.vec(Pi)
-        ]
+        constraints += [P @ ais[i] == p[i] * cp.vec(Pi)]
 
     for j in range(n):
-        constraints += [
-            P @ bjs[j] == q[j] * cp.vec(Pi)
-        ]
+        constraints += [P @ bjs[j] == q[j] * cp.vec(Pi)]
 
-    prob = cp.Problem(cp.Minimize(
-        (1 - alpha) * cp.trace(M.T @ Pi) + alpha * cp.trace(L @ P.T)), constraints)
-    if solver == 'scs':
-        prob.solve(solver=cp.SCS, verbose=verbose,
-                   max_iters=max_iters, eps=tol)
-    elif solver == 'mosek':
-        prob.solve(solver=cp.MOSEK, verbose=verbose,
-                   mosek_params={'MSK_IPAR_BI_MAX_ITERATIONS': max_iters,
-                                 'MSK_IPAR_INTPNT_MAX_ITERATIONS': max_iters,
-                                 'MSK_IPAR_SIM_MAX_ITERATIONS': max_iters,
-                                 },
-                   )
+    prob = cp.Problem(
+        cp.Minimize((1 - alpha) * cp.trace(M.T @ Pi) + alpha * cp.trace(L @ P.T)),
+        constraints,
+    )
+    if solver == "scs":
+        prob.solve(solver=cp.SCS, verbose=verbose, max_iters=max_iters, eps=tol)
+    elif solver == "mosek":
+        prob.solve(
+            solver=cp.MOSEK,
+            verbose=verbose,
+            mosek_params={
+                "MSK_IPAR_BI_MAX_ITERATIONS": max_iters,
+                "MSK_IPAR_INTPNT_MAX_ITERATIONS": max_iters,
+                "MSK_IPAR_SIM_MAX_ITERATIONS": max_iters,
+            },
+        )
     else:
-        raise TypeError('Solver is not supported.')
+        raise TypeError("Solver is not supported.")
 
     return Pi.value, P.value, prob.value

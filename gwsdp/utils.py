@@ -19,6 +19,7 @@ def is_symmetric(matrix):
     Returns:
         bool: True if the matrix is equal to its transpose, False otherwise
     """
+    # Compare matrix with its transpose
     return np.array_equal(matrix, matrix.T)
 
 
@@ -44,7 +45,6 @@ def cost_tensor_numpy(D1, D2):
     return (D1_expanded - D2_expanded) ** 2
 
 
-
 def cost_tensor_pytorch(D1: torch.Tensor, D2: torch.Tensor) -> torch.Tensor:
     """
     Efficiently compute the cost tensor for Gromov-Wasserstein distance using PyTorch broadcasting.
@@ -66,7 +66,9 @@ def cost_tensor_pytorch(D1: torch.Tensor, D2: torch.Tensor) -> torch.Tensor:
     return (D1_expanded - D2_expanded) ** 2
 
 
-def gw_from_cost_pytorch(D1: torch.Tensor, D2: torch.Tensor, pi: torch.Tensor) -> torch.Tensor:
+def gw_from_cost_pytorch(
+    D1: torch.Tensor, D2: torch.Tensor, pi: torch.Tensor
+) -> torch.Tensor:
     """
     Compute the Gromov-Wasserstein distance using PyTorch tensors.
 
@@ -82,7 +84,7 @@ def gw_from_cost_pytorch(D1: torch.Tensor, D2: torch.Tensor, pi: torch.Tensor) -
     """
     # calculation from definition of GW
     L = cost_tensor_pytorch(D1, D2)
-    T = torch.einsum('ijkl,kl->ij', L, pi)
+    T = torch.einsum("ijkl,kl->ij", L, pi)
     return torch.sum(T * pi)
 
 
@@ -102,7 +104,7 @@ def gw_from_cost(D1, D2, pi):
     """
     # calculation from definition of GW
     L = cost_tensor_numpy(D1, D2)
-    T = np.einsum('ijkl,kl->ij', L, pi)
+    T = np.einsum("ijkl,kl->ij", L, pi)
     return np.sum(T * pi)
 
 
@@ -125,7 +127,7 @@ def fgw_from_cost(M, D1, D2, pi, alpha):
     # calculation from definition of GW
     L = cost_tensor_numpy(D1, D2)
     m, n = pi.shape
-    T = np.einsum('ijkl,kl->ij', L, pi)
+    T = np.einsum("ijkl,kl->ij", L, pi)
     return alpha * np.sum(T * pi) + (1 - alpha) * np.sum(M * pi)
 
 
@@ -183,12 +185,12 @@ def sinkhorn_scaling(A, max_iters=1e3, tol=1e-12):
         Matrix with normalized rows and columns
     """
     iter = 0
-    c = 1. / np.sum(A, 0)
-    r = 1. / (A @ c)
+    c = 1.0 / np.sum(A, 0)
+    r = 1.0 / (A @ c)
     while iter < max_iters:
         iter += 1
         if np.max(np.abs(r @ A * c - 1)) <= tol:
             break
-        c = 1. / (r @ A)
-        r = 1. / (A @ c)
+        c = 1.0 / (r @ A)
+        r = 1.0 / (A @ c)
     return A * np.outer(r, c) / A.shape[0]

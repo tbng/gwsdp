@@ -20,9 +20,13 @@ __version__ = "0.1.0"
 # Public API
 from gwsdp.solvers import solve_gw_sdp, solve_fused_gw_sdp
 from gwsdp.utils import (
-    cost_tensor_numpy, cost_tensor_pytorch,
-    gw_from_cost, gw_from_cost_pytorch,
-    fgw_from_cost, optimality_gap, approximation_gap,
-    sinkhorn_scaling
+    cost_tensor_numpy,
+    cost_tensor_pytorch,
+    gw_from_cost,
+    gw_from_cost_pytorch,
+    fgw_from_cost,
+    optimality_gap,
+    approximation_gap,
+    sinkhorn_scaling,
 )
 from gwsdp.generate_dataset import generate_sample, generate_sample_two
