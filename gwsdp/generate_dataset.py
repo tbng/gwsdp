@@ -1,3 +1,11 @@
+"""
+Dataset generation utilities for Gromov-Wasserstein SDP experiments.
+
+This module provides functions to generate synthetic datasets for testing and
+benchmarking Gromov-Wasserstein solvers. It includes functions to generate
+Gaussian point clouds and stochastic block models.
+"""
+
 import networkx
 import numpy as np
 import ot
@@ -13,10 +21,28 @@ def generate_sample(
         cov_s=np.array([[1, 0], [0, 1]]),
         mu_t=np.array([4, 4, 4]),
         cov_t=np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])):
-    """Based on
-    https://pythonot.github.io/auto_examples/gromov/plot_gromov.html. Sample two
-    Gaussian distributions (in 2D and 3D) and its Euclidean cost matrices, then
-    convert to float16 to save memory.
+    """Generate two Gaussian point clouds and their distance matrices for GW experiments.
+
+    This function samples points from two Gaussian distributions (in 2D and 3D spaces),
+    computes their Euclidean distance matrices, and creates uniform probability measures.
+    Based on: https://pythonot.github.io/auto_examples/gromov/plot_gromov.html
+
+    Args:
+        n1: Number of points in the first (source) distribution
+        n2: Number of points in the second (target) distribution
+        seed: Random seed for reproducibility
+        mu_s: Mean vector for the source distribution (2D)
+        cov_s: Covariance matrix for the source distribution (2D)
+        mu_t: Mean vector for the target distribution (3D)
+        cov_t: Covariance matrix for the target distribution (3D)
+
+    Returns:
+        C1: Distance matrix between points in the first distribution (n1 x n1)
+        C2: Distance matrix between points in the second distribution (n2 x n2)
+        p: Uniform measure on the first distribution
+        q: Uniform measure on the second distribution
+        xs: Point coordinates for the first distribution (n1 x 2)
+        xt: Point coordinates for the second distribution (n2 x 3)
     """
 
     xs = ot.datasets.make_2D_samples_gauss(
@@ -39,6 +65,29 @@ def generate_sample(
 def generate_sample_two(m, n, seed=0,
                         p2=[[1., 0.1], [0.1, 0.9]],
                         p3=[[1., 0.1, 0.], [0.1, 0.95, 0.1], [0., 0.1, 0.9]]):
+    """Generate two stochastic block model (SBM) graphs with features for GW experiments.
+
+    This function creates a 2-block and a 3-block stochastic block model,
+    and adds node features that correlate with the block structure.
+    Based on: https://pythonot.github.io/auto_examples/gromov/plot_fgw_solvers.html
+
+    Args:
+        m: Number of nodes in the first graph (divided equally between 2 blocks)
+        n: Number of nodes in the second graph (divided equally between 3 blocks)
+        seed: Random seed for reproducibility
+        p2: 2x2 matrix of edge probabilities between blocks in first graph
+        p3: 3x3 matrix of edge probabilities between blocks in second graph
+
+    Returns:
+        C2: Adjacency matrix of first graph
+        C3: Adjacency matrix of second graph
+        h2: Uniform measure on nodes of first graph
+        h3: Uniform measure on nodes of second graph
+        F2: Node features for first graph
+        F3: Node features for second graph
+        G2: NetworkX graph object for first graph
+        G3: NetworkX graph object for second graph
+    """
     # 2 blocks SBM (Stochastic Block Model) to 3 blocks SBM
     # From https://pythonot.github.io/auto_examples/gromov/plot_fgw_solvers.html
 

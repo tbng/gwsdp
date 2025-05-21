@@ -1,3 +1,12 @@
+"""
+SDP-based solvers for Gromov-Wasserstein optimal transport problems.
+
+This module provides implementations of semidefinite programming (SDP) approaches
+to solve Gromov-Wasserstein (GW) and fused Gromov-Wasserstein (FGW) problems.
+These solvers find optimal transport plans that minimize the discrepancy between
+the structure of two metric spaces, possibly with additional feature information.
+"""
+
 import gc
 
 import cvxpy as cp
@@ -5,19 +14,38 @@ import numpy as np
 from scipy import sparse
 from tqdm import tqdm
 
-from gwsdp.fast_cost_tensor import cost_tensor
-from gwsdp.utils import (cost_tensor_numpy, gw_from_tensor_cost,
+from gwsdp.utils import (cost_tensor_numpy, gw_from_cost,
                          sinkhorn_scaling)
 
 
 def solve_gw_sdp(C1, C2, p, q, solver='SCS', max_iters=10000,
                  verbose=False, tol=1e-5):
+    """Solve the Gromov-Wasserstein optimal transport problem using semidefinite programming.
+
+    This function solves the following optimization problem:
+    min_{Pi} <L, P> s.t. Pi is a coupling between p and q, and P satisfies the necessary constraints.
+
+    Args:
+        C1: First distance/cost matrix (m x m)
+        C2: Second distance/cost matrix (n x n)
+        p: Source distribution (m-dimensional vector)
+        q: Target distribution (n-dimensional vector)
+        solver: SDP solver to use ('SCS' or 'mosek')
+        max_iters: Maximum number of iterations for the solver
+        verbose: Whether to display solver progress
+        tol: Tolerance for solver convergence
+
+    Returns:
+        Pi: Optimal transport plan (m x n matrix)
+        P: Lifted transport matrix (mn x mn matrix)
+        value: Optimal objective value
+    """
     # Problem size
     m = p.size
     n = q.size
 
     # Flatten the cost tensor
-    L = cost_tensor(C1, C2).transpose(1, 0, 3, 2).reshape(m * n, m * n)
+    L = cost_tensor_numpy(C1, C2).transpose(1, 0, 3, 2).reshape(m * n, m * n)
 
     # Convert to sparse matrix if sparsity ratio is smaller than 0.5
     if np.sum(L != 0) / L.size <= 0.5:
@@ -72,12 +100,36 @@ def solve_gw_sdp(C1, C2, p, q, solver='SCS', max_iters=10000,
 
 def solve_fused_gw_sdp(M, C1, C2, p, q, alpha=0.5, max_iters=10000, tol=1e-5,
                        verbose=False, solver='scs'):
+    """Solve the fused Gromov-Wasserstein optimal transport problem using semidefinite programming.
+
+    This function solves a weighted combination of standard OT and GW:
+    min_{Pi} (1-alpha)*<M,Pi> + alpha*<L,P> s.t. Pi is a coupling between p and q
+
+    The fused approach combines structural similarity (GW term) with feature similarity (OT term).
+
+    Args:
+        M: Cost matrix for feature distances (m x n)
+        C1: First structure matrix (m x m)
+        C2: Second structure matrix (n x n)
+        p: Source distribution (m-dimensional vector)
+        q: Target distribution (n-dimensional vector)
+        alpha: Weight parameter between 0 and 1 (0: pure OT, 1: pure GW)
+        max_iters: Maximum number of iterations for the solver
+        tol: Tolerance for solver convergence
+        verbose: Whether to display solver progress
+        solver: SDP solver to use ('scs' or 'mosek')
+
+    Returns:
+        Pi: Optimal transport plan (m x n matrix)
+        P: Lifted transport matrix (mn x mn matrix)
+        value: Optimal objective value
+    """
     # Problem size
     m = p.size
     n = q.size
 
     # Flatten the cost tensor
-    L = cost_tensor(C1, C2).transpose(1, 0, 3, 2).reshape(m * n, m * n)
+    L = cost_tensor_numpy(C1, C2).transpose(1, 0, 3, 2).reshape(m * n, m * n)
 
     # Convert to sparse matrix if sparsity ratio is smaller than 0.5
     if np.sum(L != 0) / L.size <= 0.5:
