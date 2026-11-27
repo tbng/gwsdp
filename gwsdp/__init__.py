@@ -18,6 +18,7 @@ refer to the accompanying documentation.
 __version__ = "0.1.0"
 
 # Public API
+from gwsdp._rinnal import solve_rinnal
 from gwsdp.solvers import solve_gw_sdp, solve_fused_gw_sdp
 from gwsdp.utils import (
     cost_tensor_numpy,

@@ -165,7 +165,7 @@ def approximation_gap(D1, D2, P, pi_sdp):
         float: Approximation gap ratio
     """
     m, n = pi_sdp.shape
-    L = cost_tensor_numpy(D1, D2).reshape(m * n, m * n)
+    L = cost_tensor_numpy(D1, D2).transpose(1, 0, 3, 2).reshape(m * n, m * n)
     return gw_from_cost(D1, D2, pi_sdp) / np.sum(L * P)
 
 
